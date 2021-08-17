@@ -17,8 +17,8 @@ from helpers.triton_model_config import Model, TFLiteTritonModel
 
 from timeit import default_timer as timer
 
-def print_timing(start, end):
-    print('** Elapsed inference time ', round((end - start) * 1000, 1), 'ms (', round((1.0 / (end - start)), 1), 'fps)')
+def print_timing(timing_of, start, end):
+    print(f'** Elapsed {timing_of} time {round((end - start) * 1000, 1)}ms ({round((1.0 / (end - start)), 1)}fps)')
 
 def extract_photo(filename, width, height, scaling=None):
     img = Image.open(filename)
@@ -59,7 +59,7 @@ def object_detection_net(
     )
 
     end = timer()
-    print_timing(start, end)
+    print_timing("inference", start, end)
 
     detection_classes = results.as_numpy(model_config.outputs[1].name)
     detection_probs = results.as_numpy(model_config.outputs[2].name)
@@ -145,4 +145,4 @@ def test_ssd_mobilenet_v1(
         "ssdmobilenetv1",
     )
     end = timer()
-    print_timing(start, end)
+    print_timing("total", start, end)

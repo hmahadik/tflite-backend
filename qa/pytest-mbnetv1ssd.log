@@ -1,0 +1,33 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.10, pytest-6.2.4, py-1.10.0, pluggy-0.13.1
+rootdir: /host/Documents/tflite_backend/qa, configfile: pytest.ini
+plugins: anyio-3.3.0
+collected 198 items / 192 deselected / 6 selected
+
+tests/object_detection_model_test.py 
+test_image = images/dog.jpg, armnn_cpu = False
+** Elapsed inference time 74.9ms (13.4fps)
+** Elapsed total time 961.8ms (1.0fps)
+.
+test_image = images/dog.jpg, armnn_cpu = True
+** Elapsed inference time 85.4ms (11.7fps)
+** Elapsed total time 922.6ms (1.1fps)
+.
+test_image = images/people.jpg, armnn_cpu = False
+** Elapsed inference time 70.7ms (14.2fps)
+** Elapsed total time 1947.8ms (0.5fps)
+.
+test_image = images/people.jpg, armnn_cpu = True
+** Elapsed inference time 82.2ms (12.2fps)
+** Elapsed total time 1959.9ms (0.5fps)
+.
+test_image = images/mug.jpg, armnn_cpu = False
+** Elapsed inference time 74.4ms (13.4fps)
+** Elapsed total time 637.3ms (1.6fps)
+.
+test_image = images/mug.jpg, armnn_cpu = True
+** Elapsed inference time 81.8ms (12.2fps)
+** Elapsed total time 641.2ms (1.6fps)
+.
+
+====================== 6 passed, 192 deselected in 8.84s =======================
