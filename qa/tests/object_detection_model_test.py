@@ -15,6 +15,10 @@ from itertools import product
 
 from helpers.triton_model_config import Model, TFLiteTritonModel
 
+from timeit import default_timer as timer
+
+def print_timing(start, end):
+    print('** Elapsed inference time ', round((end - start) * 1000, 1), 'ms (', round((1.0 / (end - start)), 1), 'fps)')
 
 def extract_photo(filename, width, height, scaling=None):
     img = Image.open(filename)
@@ -22,20 +26,7 @@ def extract_photo(filename, width, height, scaling=None):
     resized = np.array(resized_img)
     if resized.ndim == 2:
         resized = resized[:, :, np.newaxis]
-
-    expanded = np.expand_dims(resized, axis=0)
-
-    typed = expanded.astype(np.float32)
-
-    if scaling:
-        if scaling.lower() == "ssdmobilenetv1":
-            scaled = (2.0 / 255.0) * typed - 1.0
-        else:
-            scaled = typed
-    else:
-        scaled = typed
-
-    return scaled
+    return np.expand_dims(resized, axis=0)
 
 
 def object_detection_net(
@@ -48,7 +39,7 @@ def object_detection_net(
 ):
     image_input = model_config.inputs[0]
     request_input = client_type.InferInput(
-        image_input.name, [1, image_input.dims[1], image_input.dims[1], 3], "FP32"
+        image_input.name, [1, image_input.dims[1], image_input.dims[1], 3], "UINT8"
     )
     request_input.set_data_from_numpy(
         extract_photo(test_image, image_input.dims[1], image_input.dims[1], scaling)
@@ -57,6 +48,8 @@ def object_detection_net(
     request_outputs = []
     for output in model_config.outputs:
         request_outputs.append(client_type.InferRequestedOutput(output.name))
+    
+    start = timer()
 
     results = inference_client.infer(
         model_config.name,
@@ -64,6 +57,9 @@ def object_detection_net(
         model_version="1",
         outputs=request_outputs,
     )
+
+    end = timer()
+    print_timing(start, end)
 
     detection_classes = results.as_numpy(model_config.outputs[1].name)
     detection_probs = results.as_numpy(model_config.outputs[2].name)
@@ -89,7 +85,7 @@ def object_detection_net(
             "ssd_mobilenet_v1_coco",
             [
                 Model.TensorIO(
-                    "normalized_input_image_tensor", "TYPE_FP32", [1, 300, 300, 3]
+                    "normalized_input_image_tensor", "TYPE_UINT8", [1, 300, 300, 3]
                 )
             ],
             [
@@ -115,17 +111,17 @@ def object_detection_net(
                 ),
             ],
             armnn_cpu=armnn_on,
-            xnnpack=xnnpack_on,
+            xnnpack=False,
         )
-        for armnn_on, xnnpack_on in list(product([True, False], repeat=2))
+        for armnn_on in [False, True]
     ],
 )
-@pytest.mark.parametrize("client_type", [httpclient, grpcclient])
+@pytest.mark.parametrize("client_type", [httpclient])
 @pytest.mark.parametrize(
     "test_image,expected",
     [
-        ("images/people.jpg", [{"detection_index": 0, "count": 3}]),
         ("images/dog.jpg", [{"detection_index": 17, "count": 1}]),
+        ("images/people.jpg", [{"detection_index": 0, "count": 3}]),
         ("images/mug.jpg", [{"detection_index": 46, "count": 1}]),
     ],
 )
@@ -137,6 +133,9 @@ def test_ssd_mobilenet_v1(
     expected,
     model_config,
 ):
+    start = timer()
+    print()
+    print(f"test_image = {test_image}, armnn_cpu = {model_config.armnn_cpu}")
     object_detection_net(
         inference_client,
         client_type,
@@ -145,3 +144,5 @@ def test_ssd_mobilenet_v1(
         model_config,
         "ssdmobilenetv1",
     )
+    end = timer()
+    print_timing(start, end)
